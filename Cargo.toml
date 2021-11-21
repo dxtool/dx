@@ -1,6 +1,7 @@
 [package]
 name = "dx"
 version = "0.1.0"
+description = "execute tasks curated in project-defined containers"
 edition = "2021"
 
 [dependencies]
