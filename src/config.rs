@@ -1,52 +1,55 @@
+use crate::filesystem::{Filesystem, FS_LOCAL};
 use anyhow::Result;
-use serde::{Deserialize, Deserializer};
-use std::ops::Deref;
+use serde::Deserialize;
+use std::fs;
+use std::path::PathBuf;
+
+const CONFIG_FILENAME: &'static str = "dx.toml";
 
 /// The global configuration
 #[derive(Deserialize)]
 pub struct Config {
-    pub tasks: Frozen<Vec<TaskConfig>>,
+    /// Project configuration, if present
+    pub project: Option<ProjectConfig>,
+
+    /// Task configuration
+    pub tasks: Vec<TaskConfig>,
+}
+
+/// The configuration of the project
+#[derive(Deserialize)]
+pub struct ProjectConfig {
+    pub path: PathBuf,
 }
 
 /// The configuration of a specific task
 #[derive(Deserialize)]
 pub struct TaskConfig {
-    pub name: Frozen<String>,
+    /// Name of this task
+    pub name: String,
 }
 
 impl Config {
     /// Loads the configuration from the user and project config files
     pub fn load() -> Result<Config> {
-        let config = Config {
-            tasks: Frozen::new(Vec::new()),
+        let mut config = Config {
+            project: None,
+            tasks: Vec::new(),
         };
 
+        // read project config
+        if let Some(project_config_path) = FS_LOCAL.find_file_ascending(
+            &fs::canonicalize(".")?,
+            &fs::canonicalize("/")?,
+            &CONFIG_FILENAME,
+        ) {
+            let project_config = ProjectConfig {
+                path: project_config_path,
+            };
+
+            config.project = Some(project_config);
+        }
+
         Ok(config)
-    }
-}
-
-/// A value which may only be read, never written
-pub struct Frozen<T>(T);
-
-impl<T> Frozen<T> {
-    /// Create a new frozen value
-    pub fn new(value: T) -> Self {
-        Self(value)
-    }
-}
-
-/// Allow frozen values to be referenced
-impl<T> Deref for Frozen<T> {
-    type Target = T;
-
-    fn deref(&self) -> &T {
-        &self.0
-    }
-}
-
-/// Allow frozen values to be deserialized
-impl<'de, T: Deserialize<'de>> Deserialize<'de> for Frozen<T> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: Deserializer<'de> {
-        T::deserialize(deserializer).map(|value| Frozen::new(value))
     }
 }
