@@ -1,10 +1,12 @@
 [package]
 name = "dx"
 version = "0.1.0"
+description = "execute tasks curated in project-defined containers"
 edition = "2021"
 
 [dependencies]
 anyhow = "1.0"
 bollard = "0.11"
 clap = "2.33"
+serde = "1.0"
 toml = "0.5"
